@@ -1,8 +1,23 @@
 export interface User {
   id: string;
-  email: string;
+  email?: string;
+  rollNumber?: string;
   role: 'admin' | 'user';
   name: string;
+  department?: string;
+  createdAt: Date;
+}
+
+export interface LoginCredentials {
+  identifier: string; // email for users, roll number for admins
+  password: string;
+  role: 'admin' | 'user';
+}
+
+export interface AuthResponse {
+  success: boolean;
+  user?: User;
+  error?: string;
 }
 
 export interface Incident {
