@@ -5,35 +5,49 @@ const MOCK_INCIDENTS: Incident[] = [
   {
     id: '1',
     type: 'accident',
-    location: { lat: 40.7589, lng: -73.9851, address: 'Times Square, NYC' },
+    location: { lat: 17.4435, lng: 78.3772, address: 'HITEC City, Hyderabad' },
     severity: 'high',
-    description: 'Multi-vehicle collision blocking two lanes',
+    description: 'Multi-vehicle collision detected by AI - blocking two lanes',
     timestamp: new Date(Date.now() - 15 * 60 * 1000),
     status: 'active',
     detectedBy: 'ai',
-    cctvId: 'cam-001'
+    cctvId: 'cam-001',
+    confidence: 0.94
   },
   {
     id: '2',
     type: 'flooding',
-    location: { lat: 40.7505, lng: -73.9934, address: '34th Street, NYC' },
+    location: { lat: 17.4126, lng: 78.4482, address: 'Banjara Hills, Hyderabad' },
     severity: 'critical',
-    description: 'Street flooding due to heavy rain',
+    description: 'Street flooding detected - road impassable',
     timestamp: new Date(Date.now() - 30 * 60 * 1000),
     status: 'active',
     detectedBy: 'ai',
-    cctvId: 'cam-002'
+    cctvId: 'cam-002',
+    confidence: 0.87
   },
   {
     id: '3',
     type: 'traffic_jam',
-    location: { lat: 40.7614, lng: -73.9776, address: 'Broadway & 42nd St' },
+    location: { lat: 17.4239, lng: 78.4738, address: 'Jubilee Hills, Hyderabad' },
     severity: 'medium',
-    description: 'Heavy traffic congestion',
+    description: 'Heavy traffic congestion detected by AI',
     timestamp: new Date(Date.now() - 45 * 60 * 1000),
     status: 'monitoring',
     detectedBy: 'ai',
-    cctvId: 'cam-003'
+    cctvId: 'cam-003',
+    confidence: 0.76
+  },
+  {
+    id: '4',
+    type: 'road_closure',
+    location: { lat: 17.5040, lng: 78.5030, address: 'Secunderabad, Hyderabad' },
+    severity: 'high',
+    description: 'Road closure due to construction work',
+    timestamp: new Date(Date.now() - 60 * 60 * 1000),
+    status: 'active',
+    detectedBy: 'manual',
+    cctvId: 'cam-004'
   }
 ];
 

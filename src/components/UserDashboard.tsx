@@ -1,28 +1,25 @@
 import React, { useState } from 'react';
 import { useIncidents } from '../hooks/useIncidents';
 import { useAuth } from '../contexts/AuthContext';
+import TrafficMap from './TrafficMap';
 import { 
   MapPin, 
   Navigation, 
   AlertTriangle, 
   LogOut,
-  Search,
-  Route,
   Clock,
   Shield,
-  Zap
+  Zap,
+  Activity
 } from 'lucide-react';
-import { Incident, RouteAnalysis } from '../types';
+import { Incident } from '../types';
 
 const UserDashboard: React.FC = () => {
   const { incidents } = useIncidents();
   const { logout } = useAuth();
-  const [fromLocation, setFromLocation] = useState('');
-  const [toLocation, setToLocation] = useState('');
-  const [routeAnalysis, setRouteAnalysis] = useState<RouteAnalysis | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const activeIncidents = incidents.filter(i => i.status === 'active');
+  const criticalIncidents = incidents.filter(i => i.severity === 'critical');
 
   const getIncidentTypeIcon = (type: string) => {
     switch (type) {
@@ -44,40 +41,6 @@ const UserDashboard: React.FC = () => {
     }
   };
 
-  const analyzeRoute = async () => {
-    if (!fromLocation || !toLocation) return;
-    
-    setIsAnalyzing(true);
-    
-    // Simulate route analysis
-    setTimeout(() => {
-      const mockAnalysis: RouteAnalysis = {
-        route: [
-          { lat: 40.7589, lng: -73.9851 },
-          { lat: 40.7505, lng: -73.9934 }
-        ],
-        incidents: activeIncidents.slice(0, 2),
-        estimatedDelay: 12,
-        riskLevel: 'medium',
-        recommendations: [
-          'Avoid Times Square area due to ongoing accident',
-          'Consider alternative route via 8th Avenue',
-          'Allow extra 15 minutes for heavy traffic'
-        ]
-      };
-      setRouteAnalysis(mockAnalysis);
-      setIsAnalyzing(false);
-    }, 2000);
-  };
-
-  const getRiskColor = (level: string) => {
-    switch (level) {
-      case 'high': return 'text-red-600 bg-red-100';
-      case 'medium': return 'text-orange-600 bg-orange-100';
-      default: return 'text-green-600 bg-green-100';
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -85,7 +48,7 @@ const UserDashboard: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Navigation className="w-8 h-8 text-blue-600" />
-            <h1 className="text-xl font-bold text-gray-900">Traffic Monitor</h1>
+            <h1 className="text-xl font-bold text-gray-900">Hyderabad Traffic Monitor</h1>
           </div>
           <button
             onClick={logout}
@@ -98,147 +61,65 @@ const UserDashboard: React.FC = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Route Planner */}
+        {/* Stats Overview */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-            <Route className="text-blue-600" />
-            Smart Route Planning
+            <Activity className="text-blue-600" />
+            Live Traffic Status - Hyderabad
           </h2>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div className="bg-gradient-to-r from-red-500 to-red-600 p-6 rounded-xl text-white">
+              <div className="flex items-center justify-between">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    From
-                  </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <input
-                      type="text"
-                      value={fromLocation}
-                      onChange={(e) => setFromLocation(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter starting location"
-                    />
-                  </div>
+                  <p className="text-red-100 text-sm">Critical Incidents</p>
+                  <p className="text-3xl font-bold">{criticalIncidents.length}</p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    To
-                  </label>
-                  <div className="relative">
-                    <Navigation className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <input
-                      type="text"
-                      value={toLocation}
-                      onChange={(e) => setToLocation(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter destination"
-                    />
-                  </div>
-                </div>
+                <AlertTriangle className="w-8 h-8 text-red-200" />
               </div>
-              <button
-                onClick={analyzeRoute}
-                disabled={isAnalyzing || !fromLocation || !toLocation}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
-              >
-                <Search size={18} />
-                {isAnalyzing ? 'Analyzing Route...' : 'Analyze Route'}
-              </button>
             </div>
-
-            {/* Key Features */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4">
-              <h3 className="font-semibold text-gray-900 mb-3">What makes us different?</h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-start gap-2">
-                  <Zap className="w-4 h-4 text-blue-600 mt-0.5" />
-                  <span className="text-gray-700">Real-time AI analysis of CCTV feeds</span>
+            <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-xl text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-orange-100 text-sm">Active Incidents</p>
+                  <p className="text-3xl font-bold">{activeIncidents.length}</p>
                 </div>
-                <div className="flex items-start gap-2">
-                  <Shield className="w-4 h-4 text-green-600 mt-0.5" />
-                  <span className="text-gray-700">Live hazard detection and alerts</span>
+                <Activity className="w-8 h-8 text-orange-200" />
+              </div>
+            </div>
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-xl text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm">AI Detections</p>
+                  <p className="text-3xl font-bold">{incidents.filter(i => i.detectedBy === 'ai').length}</p>
                 </div>
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-orange-600 mt-0.5" />
-                  <span className="text-gray-700">Proactive incident reporting</span>
+                <Zap className="w-8 h-8 text-blue-200" />
+              </div>
+            </div>
+            <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-xl text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-sm">Areas Clear</p>
+                  <p className="text-3xl font-bold">{8 - activeIncidents.length}</p>
                 </div>
+                <Shield className="w-8 h-8 text-green-200" />
               </div>
             </div>
           </div>
-
-          {/* Route Analysis Results */}
-          {routeAnalysis && (
-            <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-              <h3 className="font-semibold text-gray-900 mb-4">Route Analysis</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="text-center">
-                  <Clock className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900">{routeAnalysis.estimatedDelay}min</p>
-                  <p className="text-sm text-gray-600">Extra Delay</p>
-                </div>
-                <div className="text-center">
-                  <AlertTriangle className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900">{routeAnalysis.incidents.length}</p>
-                  <p className="text-sm text-gray-600">Incidents on Route</p>
-                </div>
-                <div className="text-center">
-                  <Shield className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                  <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium capitalize ${getRiskColor(routeAnalysis.riskLevel)}`}>
-                    {routeAnalysis.riskLevel} Risk
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Recommendations:</h4>
-                <ul className="space-y-1 text-sm text-gray-700">
-                  {routeAnalysis.recommendations.map((rec, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center mt-0.5">
-                        {index + 1}
-                      </span>
-                      {rec}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Live Incidents Map */}
+        {/* Live Traffic Map */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-white rounded-2xl shadow-lg p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-3">
               <MapPin className="text-red-600" />
-              Live Incident Map
+              Live Traffic Map - Hyderabad
             </h3>
-            <div className="bg-gray-100 rounded-lg p-8 aspect-square flex items-center justify-center mb-4">
-              <div className="text-center">
-                <MapPin className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">Interactive Map</p>
-                <p className="text-sm text-gray-500 mt-2">
-                  Real-time incident visualization
-                </p>
-              </div>
-            </div>
-            <div className="text-sm text-gray-600">
-              <div className="flex items-center justify-between py-2">
-                <span>🚗 Accidents</span>
-                <span className="font-medium">{incidents.filter(i => i.type === 'accident').length}</span>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <span>🌊 Flooding</span>
-                <span className="font-medium">{incidents.filter(i => i.type === 'flooding').length}</span>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <span>🚦 Traffic Jams</span>
-                <span className="font-medium">{incidents.filter(i => i.type === 'traffic_jam').length}</span>
-              </div>
-            </div>
+            <TrafficMap 
+              incidents={incidents} 
+              center={{ lat: 17.3850, lng: 78.4867 }}
+              height="400px"
+            />
           </div>
 
           {/* Active Incidents */}

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useIncidents } from '../hooks/useIncidents';
 import { useAuth } from '../contexts/AuthContext';
+import VideoUpload from './VideoUpload';
+import VideoPlayer from './VideoPlayer';
+import TrafficMap from './TrafficMap';
 import { 
   Camera, 
   AlertTriangle, 
@@ -11,49 +14,21 @@ import {
   TrendingUp,
   Activity,
   LogOut,
-  RefreshCw
+  RefreshCw,
+  Upload
 } from 'lucide-react';
 import { Incident, CCTVFeed } from '../types';
-
-const MOCK_CCTV_FEEDS: CCTVFeed[] = [
-  {
-    id: 'cam-001',
-    name: 'Times Square North',
-    location: { lat: 40.7589, lng: -73.9851, address: 'Times Square, NYC' },
-    status: 'online',
-    lastDetection: {
-      type: 'accident',
-      confidence: 0.94,
-      timestamp: new Date(Date.now() - 2 * 60 * 1000)
-    }
-  },
-  {
-    id: 'cam-002',
-    name: 'Penn Station West',
-    location: { lat: 40.7505, lng: -73.9934, address: '34th Street, NYC' },
-    status: 'online',
-    lastDetection: {
-      type: 'flooding',
-      confidence: 0.87,
-      timestamp: new Date(Date.now() - 5 * 60 * 1000)
-    }
-  },
-  {
-    id: 'cam-003',
-    name: 'Broadway & 42nd',
-    location: { lat: 40.7614, lng: -73.9776, address: 'Broadway & 42nd St' },
-    status: 'online'
-  }
-];
 
 const AdminDashboard: React.FC = () => {
   const { incidents, updateIncidentStatus } = useIncidents();
   const { logout } = useAuth();
-  const [selectedFeed, setSelectedFeed] = useState<CCTVFeed | null>(MOCK_CCTV_FEEDS[0]);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [cctvFeeds, setCctvFeeds] = useState<CCTVFeed[]>([]);
+  const [selectedFeed, setSelectedFeed] = useState<CCTVFeed | null>(null);
+  const [activeTab, setActiveTab] = useState<'upload' | 'monitor' | 'map'>('upload');
 
   const activeIncidents = incidents.filter(i => i.status === 'active');
   const criticalIncidents = incidents.filter(i => i.severity === 'critical');
+  const aiDetections = incidents.filter(i => i.detectedBy === 'ai');
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -75,13 +50,10 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const simulateAnalysis = () => {
-    setIsAnalyzing(true);
-    setTimeout(() => {
-      setIsAnalyzing(false);
-      // Simulate new detection
-      alert('New incident detected: Traffic congestion on Broadway');
-    }, 3000);
+  const handleAnalysisComplete = (result: { analysis: any; cctvFeed: CCTVFeed }) => {
+    setCctvFeeds(prev => [...prev, result.cctvFeed]);
+    setSelectedFeed(result.cctvFeed);
+    setActiveTab('monitor');
   };
 
   return (
@@ -91,7 +63,7 @@ const AdminDashboard: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Camera className="w-8 h-8 text-blue-400" />
-            <h1 className="text-xl font-bold text-white">Traffic Monitor - Admin</h1>
+            <h1 className="text-xl font-bold text-white">Hyderabad Traffic Monitor - Admin</h1>
           </div>
           <button
             onClick={logout}
@@ -105,9 +77,9 @@ const AdminDashboard: React.FC = () => {
 
       <div className="flex">
         {/* Sidebar */}
-        <aside className="w-80 bg-slate-800 border-r border-slate-700 p-4 h-screen overflow-y-auto">
+        <aside className="w-80 bg-slate-800 border-r border-slate-700 p-4 h-[calc(100vh-80px)] overflow-y-auto">
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-1 gap-3 mb-6">
             <div className="bg-slate-700 p-4 rounded-lg">
               <div className="flex items-center gap-2 text-red-400 mb-2">
                 <AlertTriangle size={20} />
@@ -126,6 +98,15 @@ const AdminDashboard: React.FC = () => {
                 {activeIncidents.length}
               </div>
             </div>
+            <div className="bg-slate-700 p-4 rounded-lg">
+              <div className="flex items-center gap-2 text-blue-400 mb-2">
+                <Camera size={20} />
+                <span className="font-medium">AI Detections</span>
+              </div>
+              <div className="text-2xl font-bold text-white">
+                {aiDetections.length}
+              </div>
+            </div>
           </div>
 
           {/* CCTV Feeds */}
@@ -135,7 +116,7 @@ const AdminDashboard: React.FC = () => {
               CCTV Feeds
             </h3>
             <div className="space-y-2">
-              {MOCK_CCTV_FEEDS.map(feed => (
+              {cctvFeeds.map(feed => (
                 <div
                   key={feed.id}
                   onClick={() => setSelectedFeed(feed)}
@@ -164,6 +145,12 @@ const AdminDashboard: React.FC = () => {
                   )}
                 </div>
               ))}
+              {cctvFeeds.length === 0 && (
+                <div className="text-center py-4 text-slate-400">
+                  <Camera className="w-8 h-8 mx-auto mb-2" />
+                  <p className="text-sm">No CCTV feeds uploaded yet</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -211,50 +198,79 @@ const AdminDashboard: React.FC = () => {
 
         {/* Main Content */}
         <main className="flex-1 p-6">
-          {selectedFeed && (
-            <div className="bg-slate-800 rounded-xl p-6 mb-6">
-              <div className="flex items-center justify-between mb-4">
+          {/* Tab Navigation */}
+          <div className="flex bg-slate-800 rounded-lg p-1 mb-6">
+            <button
+              onClick={() => setActiveTab('upload')}
+              className={`flex-1 py-3 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'upload' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              <Upload size={16} />
+              Upload Video
+            </button>
+            <button
+              onClick={() => setActiveTab('monitor')}
+              className={`flex-1 py-3 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'monitor' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              <Eye size={16} />
+              Monitor Feeds
+            </button>
+            <button
+              onClick={() => setActiveTab('map')}
+              className={`flex-1 py-3 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'map' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              <MapPin size={16} />
+              Live Map
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          {activeTab === 'upload' && (
+            <VideoUpload onAnalysisComplete={handleAnalysisComplete} />
+          )}
+
+          {activeTab === 'monitor' && selectedFeed && (
+            <div className="bg-slate-800 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-white flex items-center gap-3">
                   <Eye className="text-blue-400" />
                   {selectedFeed.name}
                 </h2>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={simulateAnalysis}
-                    disabled={isAnalyzing}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
-                    {isAnalyzing ? 'Analyzing...' : 'Run Analysis'}
-                  </button>
-                  <button className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg transition-colors">
-                    <Settings size={16} />
-                    Settings
-                  </button>
+                <div className="flex items-center gap-2 text-slate-300">
+                  <MapPin size={16} />
+                  {selectedFeed.location.address}
                 </div>
               </div>
 
-              {/* Simulated CCTV Feed */}
-              <div className="bg-black rounded-lg p-8 mb-4 aspect-video flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-900/20 to-purple-900/20"></div>
-                <div className="text-center">
-                  <Camera className="w-16 h-16 text-slate-500 mx-auto mb-4" />
-                  <p className="text-slate-400 mb-2">Live CCTV Feed</p>
-                  <p className="text-slate-500 text-sm">
-                    {selectedFeed.location.address}
-                  </p>
-                  {isAnalyzing && (
-                    <div className="mt-4">
-                      <div className="animate-pulse bg-blue-500/20 h-2 rounded-full mb-2"></div>
-                      <p className="text-blue-400 text-sm">AI Analysis in progress...</p>
-                    </div>
-                  )}
+              {selectedFeed.videoUrl ? (
+                <VideoPlayer
+                  videoUrl={selectedFeed.videoUrl}
+                  detectionBoxes={selectedFeed.lastDetection?.detectionBoxes}
+                />
+              ) : (
+                <div className="bg-black rounded-lg p-8 aspect-video flex items-center justify-center">
+                  <div className="text-center">
+                    <Camera className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+                    <p className="text-slate-400 mb-2">No video uploaded</p>
+                    <p className="text-slate-500 text-sm">Upload a video to start monitoring</p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Detection Info */}
               {selectedFeed.lastDetection && (
-                <div className="bg-slate-700 rounded-lg p-4">
+                <div className="bg-slate-700 rounded-lg p-4 mt-4">
                   <h4 className="text-white font-medium mb-2">Latest AI Detection</h4>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
@@ -282,18 +298,46 @@ const AdminDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* Control Panel */}
-          <div className="bg-slate-800 rounded-xl p-6">
+          {activeTab === 'map' && (
+            <div className="bg-slate-800 rounded-xl p-6">
+              <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
+                <MapPin className="text-blue-400" />
+                Live Incident Map - Hyderabad
+              </h2>
+              <TrafficMap 
+                incidents={incidents} 
+                center={{ lat: 17.3850, lng: 78.4867 }}
+                height="600px"
+              />
+            </div>
+          )}
+
+          {!selectedFeed && activeTab === 'monitor' && (
+            <div className="bg-slate-800 rounded-xl p-6 text-center">
+              <Camera className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+              <h3 className="text-white text-lg font-medium mb-2">No CCTV Feed Selected</h3>
+              <p className="text-slate-400 mb-4">Upload a video first or select a feed from the sidebar</p>
+              <button
+                onClick={() => setActiveTab('upload')}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                Upload Video
+              </button>
+            </div>
+          )}
+
+          {/* AI Model Status */}
+          <div className="bg-slate-800 rounded-xl p-6 mt-6">
             <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-3">
               <Settings className="text-blue-400" />
-              Parameter Controls
+              YOLOv8 Model Status
             </h3>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { name: 'Heavy Rain Detection', enabled: true, type: 'weather' },
-                { name: 'Flood Monitoring', enabled: true, type: 'flood' },
-                { name: 'Accident Detection', enabled: true, type: 'accident' },
-                { name: 'Traffic Analysis', enabled: false, type: 'traffic' }
+                { name: 'Accident Detection', enabled: true, type: 'accident', count: incidents.filter(i => i.type === 'accident').length },
+                { name: 'Flood Monitoring', enabled: true, type: 'flood', count: incidents.filter(i => i.type === 'flooding').length },
+                { name: 'Traffic Analysis', enabled: true, type: 'traffic', count: incidents.filter(i => i.type === 'traffic_jam').length },
+                { name: 'Emergency Detection', enabled: true, type: 'emergency', count: incidents.filter(i => i.type === 'emergency').length }
               ].map(param => (
                 <div key={param.name} className="bg-slate-700 p-4 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
@@ -306,8 +350,11 @@ const AdminDashboard: React.FC = () => {
                       }`} />
                     </div>
                   </div>
-                  <p className="text-slate-400 text-xs">
+                  <p className="text-slate-400 text-xs mb-1">
                     Status: {param.enabled ? 'Active' : 'Inactive'}
+                  </p>
+                  <p className="text-blue-400 text-sm font-medium">
+                    {param.count} detected today
                   </p>
                 </div>
               ))}

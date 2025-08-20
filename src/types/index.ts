@@ -34,6 +34,33 @@ export interface Incident {
   status: 'active' | 'resolved' | 'monitoring';
   detectedBy: 'ai' | 'manual' | 'user_report';
   cctvId?: string;
+  confidence?: number;
+  videoUrl?: string;
+  detectionBoxes?: DetectionBox[];
+}
+
+export interface DetectionBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  class: string;
+  confidence: number;
+}
+
+export interface YOLODetection {
+  class: string;
+  confidence: number;
+  bbox: [number, number, number, number];
+}
+
+export interface VideoAnalysis {
+  videoId: string;
+  detections: YOLODetection[];
+  incidents: Incident[];
+  processedFrames: number;
+  totalFrames: number;
+  status: 'processing' | 'completed' | 'error';
 }
 
 export interface CCTVFeed {
@@ -45,17 +72,23 @@ export interface CCTVFeed {
     address: string;
   };
   status: 'online' | 'offline' | 'maintenance';
+  videoUrl?: string;
+  isLive?: boolean;
   lastDetection?: {
     type: string;
     confidence: number;
     timestamp: Date;
+    detectionBoxes?: DetectionBox[];
   };
 }
 
-export interface RouteAnalysis {
-  route: Array<{ lat: number; lng: number }>;
-  incidents: Incident[];
-  estimatedDelay: number;
-  riskLevel: 'low' | 'medium' | 'high';
-  recommendations: string[];
+export interface VideoUpload {
+  file: File;
+  location: {
+    lat: number;
+    lng: number;
+    address: string;
+  };
+  cctvId: string;
+  name: string;
 }
