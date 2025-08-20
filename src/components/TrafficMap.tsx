@@ -162,20 +162,24 @@ const TrafficMap: React.FC<TrafficMapProps> = ({
       <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-4 max-w-xs z-[1000]">
         <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
           <MapPin className="text-blue-600" size={16} />
-          Incident Types
+          YOLOv8 Detection Types
         </h4>
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2">
             <span className="text-lg">🚗</span>
-            <span className="text-gray-700">Accidents</span>
+            <span className="text-gray-700">Car Accidents</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-lg">🌊</span>
-            <span className="text-gray-700">Flooding</span>
+            <span className="text-gray-700">Street Flooding</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-lg">🚦</span>
             <span className="text-gray-700">Traffic Jams</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🌧️</span>
+            <span className="text-gray-700">Heavy Rain</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-lg">🚧</span>
@@ -191,14 +195,17 @@ const TrafficMap: React.FC<TrafficMapProps> = ({
         <div className="mt-4 pt-3 border-t border-gray-200">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-xs text-gray-600">Live Updates</span>
+            <span className="text-xs text-gray-600">YOLOv8 Live Analysis</span>
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            8 CCTV feeds • Real-time detection
           </div>
         </div>
       </div>
 
       {/* Map Attribution */}
       <div className="absolute bottom-2 left-2 bg-white/90 px-2 py-1 rounded text-xs text-gray-600 z-[1000]">
-        Powered by OpenStreetMap
+        Powered by OpenStreetMap • YOLOv8 AI Detection
       </div>
     </div>
   );

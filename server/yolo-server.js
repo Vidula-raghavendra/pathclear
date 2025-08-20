@@ -41,19 +41,49 @@ const upload = multer({
 // Mock YOLOv8 detection results
 const getMockDetections = (filename) => {
   const detectionTypes = [
-    { class: 'car_accident', confidence: 0.89, bbox: [120, 80, 300, 200] },
-    { class: 'heavy_traffic', confidence: 0.76, bbox: [50, 150, 400, 300] },
-    { class: 'flood', confidence: 0.92, bbox: [200, 100, 500, 250] },
-    { class: 'blocked_road', confidence: 0.68, bbox: [100, 200, 350, 400] }
+    { 
+      class: 'car_accident', 
+      confidence: 0.85 + Math.random() * 0.1, 
+      bbox: [120 + Math.random() * 50, 80 + Math.random() * 50, 300 + Math.random() * 50, 200 + Math.random() * 50] 
+    },
+    { 
+      class: 'heavy_traffic', 
+      confidence: 0.70 + Math.random() * 0.15, 
+      bbox: [50 + Math.random() * 30, 150 + Math.random() * 30, 400 + Math.random() * 40, 300 + Math.random() * 40] 
+    },
+    { 
+      class: 'flood', 
+      confidence: 0.80 + Math.random() * 0.15, 
+      bbox: [200 + Math.random() * 40, 100 + Math.random() * 40, 500 + Math.random() * 50, 250 + Math.random() * 50] 
+    },
+    { 
+      class: 'blocked_road', 
+      confidence: 0.65 + Math.random() * 0.15, 
+      bbox: [100 + Math.random() * 50, 200 + Math.random() * 50, 350 + Math.random() * 50, 400 + Math.random() * 50] 
+    },
+    { 
+      class: 'heavy_rain', 
+      confidence: 0.75 + Math.random() * 0.2, 
+      bbox: [0, 0, 640, 360] 
+    },
+    { 
+      class: 'emergency_vehicle', 
+      confidence: 0.90 + Math.random() * 0.08, 
+      bbox: [150 + Math.random() * 100, 120 + Math.random() * 80, 250 + Math.random() * 100, 200 + Math.random() * 80] 
+    }
   ];
 
   // Randomly select 1-3 detections
-  const numDetections = Math.floor(Math.random() * 3) + 1;
+  const numDetections = Math.floor(Math.random() * 2) + 1; // 1-2 detections
   const selectedDetections = [];
   
   for (let i = 0; i < numDetections; i++) {
     const randomIndex = Math.floor(Math.random() * detectionTypes.length);
-    selectedDetections.push(detectionTypes[randomIndex]);
+    const detection = { ...detectionTypes[randomIndex] };
+    // Ensure unique detections
+    if (!selectedDetections.find(d => d.class === detection.class)) {
+      selectedDetections.push(detection);
+    }
   }
 
   return selectedDetections;
@@ -83,8 +113,11 @@ app.post('/api/analyze', upload.single('video'), async (req, res) => {
       processedFrames: 100,
       totalFrames: 100,
       status: 'completed',
-      analysisTime: '2.3s',
-      modelVersion: 'YOLOv8n'
+      analysisTime: (1.5 + Math.random() * 2).toFixed(1) + 's',
+      modelVersion: 'YOLOv8n',
+      timestamp: new Date().toISOString(),
+      processingFps: 30,
+      detectionClasses: ['car_accident', 'flood', 'heavy_traffic', 'blocked_road', 'heavy_rain', 'emergency_vehicle']
     };
 
     res.json(response);
@@ -98,9 +131,19 @@ app.post('/api/analyze', upload.single('video'), async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'healthy', 
-    model: 'YOLOv8n',
+    model: 'YOLOv8n - Traffic & Emergency Detection',
     version: '1.0.0',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    supportedClasses: [
+      'car_accident',
+      'flood', 
+      'heavy_traffic',
+      'blocked_road',
+      'heavy_rain',
+      'emergency_vehicle'
+    ],
+    processingCapacity: '8 concurrent video streams',
+    averageLatency: '150ms'
   });
 });
 

@@ -252,6 +252,16 @@ const AdminDashboard: React.FC = () => {
             <LiveDetectionFeed 
               incidents={incidents}
               isActive={realTimeDetections}
+              onNewDetection={(incident) => {
+                // Add new incident from live detection
+                const newIncident = {
+                  ...incident,
+                  id: Date.now().toString(),
+                  timestamp: new Date()
+                };
+                // This would normally update the incidents state
+                console.log('New AI detection:', newIncident);
+              }}
             />
           )}
 
