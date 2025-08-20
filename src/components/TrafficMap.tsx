@@ -1,7 +1,17 @@
-import React, { useState, useCallback } from 'react';
-import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps-api';
+import React, { useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
 import { Incident } from '../types';
 import { MapPin, AlertTriangle, Clock } from 'lucide-react';
+import 'leaflet/dist/leaflet.css';
+
+// Fix for default markers in Leaflet
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 interface TrafficMapProps {
   incidents: Incident[];
@@ -18,60 +28,58 @@ const TrafficMap: React.FC<TrafficMapProps> = ({
 }) => {
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
 
-  const mapContainerStyle = {
-    width: '100%',
-    height
-  };
-
-  const getMarkerIcon = (incident: Incident) => {
-    const baseUrl = 'data:image/svg+xml;base64,';
+  const createCustomIcon = (incident: Incident) => {
     let color = '#10B981'; // green
-    let symbol = '⚠️';
+    let emoji = '⚠️';
 
     switch (incident.type) {
       case 'accident':
         color = '#EF4444'; // red
-        symbol = '🚗';
+        emoji = '🚗';
         break;
       case 'flooding':
         color = '#3B82F6'; // blue
-        symbol = '🌊';
+        emoji = '🌊';
         break;
       case 'traffic_jam':
         color = '#F59E0B'; // amber
-        symbol = '🚦';
+        emoji = '🚦';
         break;
       case 'road_closure':
         color = '#8B5CF6'; // purple
-        symbol = '🚧';
+        emoji = '🚧';
         break;
       case 'emergency':
         color = '#EF4444'; // red
-        symbol = '🚨';
+        emoji = '🚨';
         break;
     }
 
-    const svg = `
-      <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="20" cy="20" r="18" fill="${color}" stroke="white" stroke-width="2"/>
-        <text x="20" y="26" text-anchor="middle" font-size="16" fill="white">${symbol}</text>
-      </svg>
+    const iconHtml = `
+      <div style="
+        background-color: ${color};
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 3px solid white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      ">
+        ${emoji}
+      </div>
     `;
 
-    return {
-      url: baseUrl + btoa(svg),
-      scaledSize: new google.maps.Size(40, 40),
-      anchor: new google.maps.Point(20, 20)
-    };
+    return L.divIcon({
+      html: iconHtml,
+      className: 'custom-incident-marker',
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
+      popupAnchor: [0, -20]
+    });
   };
-
-  const onMarkerClick = useCallback((incident: Incident) => {
-    setSelectedIncident(incident);
-  }, []);
-
-  const onInfoWindowClose = useCallback(() => {
-    setSelectedIncident(null);
-  }, []);
 
   const getSeverityBadgeColor = (severity: string) => {
     switch (severity) {
@@ -82,79 +90,80 @@ const TrafficMap: React.FC<TrafficMapProps> = ({
     }
   };
 
+  const getIncidentTypeIcon = (type: string) => {
+    switch (type) {
+      case 'accident': return '🚗';
+      case 'flooding': return '🌊';
+      case 'heavy_rain': return '🌧️';
+      case 'traffic_jam': return '🚦';
+      case 'road_closure': return '🚧';
+      default: return '⚠️';
+    }
+  };
+
   return (
     <div className="relative">
-      <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}>
-        <GoogleMap
-          mapContainerStyle={mapContainerStyle}
-          center={center}
+      <div style={{ height }}>
+        <MapContainer
+          center={[center.lat, center.lng]}
           zoom={zoom}
-          options={{
-            styles: [
-              {
-                featureType: 'poi',
-                elementType: 'labels',
-                stylers: [{ visibility: 'off' }]
-              }
-            ],
-            disableDefaultUI: false,
-            zoomControl: true,
-            streetViewControl: false,
-            mapTypeControl: false,
-            fullscreenControl: true
-          }}
+          style={{ height: '100%', width: '100%' }}
+          className="rounded-lg"
         >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          
           {incidents.map((incident) => (
             <Marker
               key={incident.id}
-              position={{ lat: incident.location.lat, lng: incident.location.lng }}
-              icon={getMarkerIcon(incident)}
-              onClick={() => onMarkerClick(incident)}
-            />
-          ))}
-
-          {selectedIncident && (
-            <InfoWindow
-              position={{
-                lat: selectedIncident.location.lat,
-                lng: selectedIncident.location.lng
-              }}
-              onCloseClick={onInfoWindowClose}
+              position={[incident.location.lat, incident.location.lng]}
+              icon={createCustomIcon(incident)}
             >
-              <div className="p-3 max-w-sm">
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-gray-900 capitalize">
-                    {selectedIncident.type.replace('_', ' ')}
-                  </h3>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getSeverityBadgeColor(selectedIncident.severity)}`}>
-                    {selectedIncident.severity}
-                  </span>
-                </div>
-                <p className="text-gray-700 text-sm mb-2">
-                  {selectedIncident.description}
-                </p>
-                <div className="flex items-center gap-1 text-gray-500 text-xs mb-1">
-                  <MapPin size={12} />
-                  {selectedIncident.location.address}
-                </div>
-                <div className="flex items-center gap-1 text-gray-500 text-xs mb-2">
-                  <Clock size={12} />
-                  {Math.floor((Date.now() - selectedIncident.timestamp.getTime()) / 60000)}m ago
-                </div>
-                {selectedIncident.confidence && (
-                  <div className="text-xs text-blue-600">
-                    AI Confidence: {Math.round(selectedIncident.confidence * 100)}%
+              <Popup>
+                <div className="p-3 max-w-sm">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-semibold text-gray-900 capitalize flex items-center gap-2">
+                      <span>{getIncidentTypeIcon(incident.type)}</span>
+                      {incident.type.replace('_', ' ')}
+                    </h3>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getSeverityBadgeColor(incident.severity)}`}>
+                      {incident.severity}
+                    </span>
                   </div>
-                )}
-              </div>
-            </InfoWindow>
-          )}
-        </GoogleMap>
-      </LoadScript>
+                  <p className="text-gray-700 text-sm mb-2">
+                    {incident.description}
+                  </p>
+                  <div className="flex items-center gap-1 text-gray-500 text-xs mb-1">
+                    <MapPin size={12} />
+                    {incident.location.address}
+                  </div>
+                  <div className="flex items-center gap-1 text-gray-500 text-xs mb-2">
+                    <Clock size={12} />
+                    {Math.floor((Date.now() - incident.timestamp.getTime()) / 60000)}m ago
+                  </div>
+                  {incident.confidence && (
+                    <div className="text-xs text-blue-600 font-medium">
+                      AI Confidence: {Math.round(incident.confidence * 100)}%
+                    </div>
+                  )}
+                  <div className="mt-2 text-xs text-gray-600">
+                    Status: <span className="capitalize font-medium">{incident.status}</span>
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+        </MapContainer>
+      </div>
 
       {/* Map Legend */}
-      <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-4 max-w-xs">
-        <h4 className="font-semibold text-gray-900 mb-3">Incident Types</h4>
+      <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-4 max-w-xs z-[1000]">
+        <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <MapPin className="text-blue-600" size={16} />
+          Incident Types
+        </h4>
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2">
             <span className="text-lg">🚗</span>
@@ -177,6 +186,19 @@ const TrafficMap: React.FC<TrafficMapProps> = ({
             <span className="text-gray-700">Emergency</span>
           </div>
         </div>
+        
+        {/* Live Status Indicator */}
+        <div className="mt-4 pt-3 border-t border-gray-200">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-xs text-gray-600">Live Updates</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Map Attribution */}
+      <div className="absolute bottom-2 left-2 bg-white/90 px-2 py-1 rounded text-xs text-gray-600 z-[1000]">
+        Powered by OpenStreetMap
       </div>
     </div>
   );
