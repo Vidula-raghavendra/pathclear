@@ -99,19 +99,31 @@ export class YOLOService {
   }
 
   private getMockAnalysis(videoFile: File, location: { lat: number; lng: number; address: string }): VideoAnalysis {
-    // Mock analysis for demo purposes
-    const mockDetections: YOLODetection[] = [
-      {
-        class: 'car_accident',
-        confidence: 0.89,
-        bbox: [120, 80, 300, 200]
-      },
-      {
-        class: 'heavy_traffic',
-        confidence: 0.76,
-        bbox: [50, 150, 400, 300]
-      }
+    // Enhanced mock analysis with more realistic detections
+    const possibleDetections = [
+      { class: 'car_accident', confidence: 0.85 + Math.random() * 0.1 },
+      { class: 'heavy_traffic', confidence: 0.70 + Math.random() * 0.15 },
+      { class: 'flood', confidence: 0.80 + Math.random() * 0.15 },
+      { class: 'blocked_road', confidence: 0.75 + Math.random() * 0.1 },
+      { class: 'emergency_vehicle', confidence: 0.90 + Math.random() * 0.05 }
     ];
+
+    // Randomly select 1-3 detections
+    const numDetections = Math.floor(Math.random() * 3) + 1;
+    const mockDetections: YOLODetection[] = [];
+    
+    for (let i = 0; i < numDetections; i++) {
+      const detection = possibleDetections[Math.floor(Math.random() * possibleDetections.length)];
+      mockDetections.push({
+        ...detection,
+        bbox: [
+          Math.random() * 200 + 50,  // x
+          Math.random() * 150 + 50,  // y
+          Math.random() * 200 + 250, // x2
+          Math.random() * 150 + 200  // y2
+        ]
+      });
+    }
 
     return this.processYOLOResults({
       videoId: Date.now().toString(),

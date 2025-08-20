@@ -17,9 +17,20 @@ import { Incident } from '../types';
 const UserDashboard: React.FC = () => {
   const { incidents } = useIncidents();
   const { logout } = useAuth();
+  const [lastUpdate, setLastUpdate] = useState(new Date());
+
+  // Update timestamp when incidents change
+  useEffect(() => {
+    setLastUpdate(new Date());
+  }, [incidents]);
 
   const activeIncidents = incidents.filter(i => i.status === 'active');
   const criticalIncidents = incidents.filter(i => i.severity === 'critical');
+  const aiDetections = incidents.filter(i => i.detectedBy === 'ai');
+  const recentAiDetections = incidents.filter(i => 
+    i.detectedBy === 'ai' && 
+    Date.now() - i.timestamp.getTime() < 30 * 60 * 1000 // Last 30 minutes
+  );
 
   const getIncidentTypeIcon = (type: string) => {
     switch (type) {
@@ -91,10 +102,16 @@ const UserDashboard: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-blue-100 text-sm">AI Detections</p>
-                  <p className="text-3xl font-bold">{incidents.filter(i => i.detectedBy === 'ai').length}</p>
+                  <p className="text-3xl font-bold">{aiDetections.length}</p>
                 </div>
                 <Zap className="w-8 h-8 text-blue-200" />
               </div>
+              {recentAiDetections.length > 0 && (
+                <div className="mt-2 text-xs text-blue-100 flex items-center gap-1">
+                  <div className="w-2 h-2 bg-blue-200 rounded-full animate-pulse" />
+                  {recentAiDetections.length} new in last 30min
+                </div>
+              )}
             </div>
             <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-xl text-white">
               <div className="flex items-center justify-between">
@@ -115,6 +132,15 @@ const UserDashboard: React.FC = () => {
               <MapPin className="text-red-600" />
               Live Traffic Map - Hyderabad
             </h3>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span>Live AI Detection Updates</span>
+              </div>
+              <div className="text-xs text-gray-500">
+                Last update: {lastUpdate.toLocaleTimeString()}
+              </div>
+            </div>
             <TrafficMap 
               incidents={incidents} 
               center={{ lat: 17.3850, lng: 78.4867 }}
@@ -127,6 +153,11 @@ const UserDashboard: React.FC = () => {
             <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-3">
               <AlertTriangle className="text-orange-600" />
               Active Incidents
+              {recentAiDetections.length > 0 && (
+                <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
+                  {recentAiDetections.length} new
+                </span>
+              )}
             </h3>
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {activeIncidents.map(incident => (
@@ -137,12 +168,23 @@ const UserDashboard: React.FC = () => {
                       <span className="font-medium text-gray-900 capitalize">
                         {incident.type.replace('_', ' ')}
                       </span>
+                      {incident.detectedBy === 'ai' && (
+                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                          <Zap size={10} />
+                          AI
+                        </span>
+                      )}
                     </div>
                     <span className="text-xs text-gray-500">
                       {Math.floor((Date.now() - incident.timestamp.getTime()) / 60000)}m ago
                     </span>
                   </div>
                   <p className="text-sm text-gray-700 mb-1">{incident.description}</p>
+                  {incident.confidence && (
+                    <p className="text-xs text-blue-600 mb-1">
+                      AI Confidence: {Math.round(incident.confidence * 100)}%
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500 flex items-center gap-1">
                     <MapPin size={12} />
                     {incident.location.address}
@@ -159,6 +201,37 @@ const UserDashboard: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* AI Detection Alert Banner */}
+        {recentAiDetections.length > 0 && (
+          <div className="bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl p-6 text-white">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="w-8 h-8" />
+              <div>
+                <h3 className="text-xl font-bold">Recent AI Detections</h3>
+                <p className="text-red-100">
+                  {recentAiDetections.length} new incident{recentAiDetections.length > 1 ? 's' : ''} detected in the last 30 minutes
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {recentAiDetections.slice(0, 2).map(incident => (
+                <div key={incident.id} className="bg-white/20 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">{getIncidentTypeIcon(incident.type)}</span>
+                    <span className="font-medium capitalize">
+                      {incident.type.replace('_', ' ')}
+                    </span>
+                  </div>
+                  <p className="text-sm text-red-100 mb-1">{incident.location.address}</p>
+                  <p className="text-xs text-red-200">
+                    Detected {Math.floor((Date.now() - incident.timestamp.getTime()) / 60000)} minutes ago
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -82,6 +82,14 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ onAnalysisComplete }) => {
       setAnalysisResult({ analysis, cctvFeed });
       onAnalysisComplete({ analysis, cctvFeed });
       
+      // Show success message with detection summary
+      if (analysis.incidents.length > 0) {
+        const detectionSummary = analysis.incidents.map(i => 
+          `${i.type.replace('_', ' ')} (${Math.round((i.confidence || 0) * 100)}%)`
+        ).join(', ');
+        console.log(`YOLOv8 Analysis Complete: ${detectionSummary}`);
+      }
+      
     } catch (error) {
       console.error('Upload and analysis failed:', error);
       alert('Failed to analyze video. Please try again.');

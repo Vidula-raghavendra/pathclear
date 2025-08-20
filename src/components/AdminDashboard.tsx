@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import VideoUpload from './VideoUpload';
 import VideoPlayer from './VideoPlayer';
 import TrafficMap from './TrafficMap';
+import LiveDetectionFeed from './LiveDetectionFeed';
 import { 
   Camera, 
   AlertTriangle, 
@@ -20,11 +21,11 @@ import {
 import { Incident, CCTVFeed } from '../types';
 
 const AdminDashboard: React.FC = () => {
-  const { incidents, updateIncidentStatus } = useIncidents();
+  const { incidents, updateIncidentStatus, realTimeDetections } = useIncidents();
   const { logout } = useAuth();
   const [cctvFeeds, setCctvFeeds] = useState<CCTVFeed[]>([]);
   const [selectedFeed, setSelectedFeed] = useState<CCTVFeed | null>(null);
-  const [activeTab, setActiveTab] = useState<'upload' | 'monitor' | 'map'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'monitor' | 'map' | 'live'>('live');
 
   const activeIncidents = incidents.filter(i => i.status === 'active');
   const criticalIncidents = incidents.filter(i => i.severity === 'critical');
@@ -201,6 +202,17 @@ const AdminDashboard: React.FC = () => {
           {/* Tab Navigation */}
           <div className="flex bg-slate-800 rounded-lg p-1 mb-6">
             <button
+              onClick={() => setActiveTab('live')}
+              className={`flex-1 py-3 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'live' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              <Activity size={16} />
+              Live Detection
+            </button>
+            <button
               onClick={() => setActiveTab('upload')}
               className={`flex-1 py-3 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
                 activeTab === 'upload' 
@@ -236,6 +248,13 @@ const AdminDashboard: React.FC = () => {
           </div>
 
           {/* Tab Content */}
+          {activeTab === 'live' && (
+            <LiveDetectionFeed 
+              incidents={incidents}
+              isActive={realTimeDetections}
+            />
+          )}
+
           {activeTab === 'upload' && (
             <VideoUpload onAnalysisComplete={handleAnalysisComplete} />
           )}
@@ -358,6 +377,22 @@ const AdminDashboard: React.FC = () => {
                   </p>
                 </div>
               ))}
+            </div>
+            
+            {/* Real-time Detection Status */}
+            <div className="mt-4 p-4 bg-slate-700 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${realTimeDetections ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+                  <span className="text-white font-medium">Real-time Detection</span>
+                </div>
+                <span className="text-slate-400 text-sm">
+                  {realTimeDetections ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              <p className="text-slate-400 text-xs mt-2">
+                YOLOv8 model continuously analyzing CCTV feeds
+              </p>
             </div>
           </div>
         </main>
