@@ -1,20 +1,21 @@
-import React, { useState } from 'react';
-import { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useIncidents } from '../hooks/useIncidents';
 import { useAuth } from '../contexts/AuthContext';
 import TrafficMap from './TrafficMap';
 import AlertNotification from './AlertNotification';
-import { 
-  MapPin, 
-  Navigation, 
-  AlertTriangle, 
+import {
+  MapPin,
+  Navigation,
+  AlertTriangle,
   LogOut,
   Clock,
   Shield,
   Zap,
   Activity,
   Bell,
-  RefreshCw
+  RefreshCw,
+  Camera,      // Added missing import
+  TrendingUp   // Added missing import
 } from 'lucide-react';
 import { Incident } from '../types';
 
@@ -28,14 +29,14 @@ const UserDashboard: React.FC = () => {
   // Update timestamp when incidents change
   useEffect(() => {
     setLastUpdate(new Date());
-    
+
     // Check for new AI detections in the last minute
     const oneMinuteAgo = Date.now() - 60 * 1000;
-    const veryRecentDetections = incidents.filter(i => 
-      i.detectedBy === 'ai' && 
+    const veryRecentDetections = incidents.filter(i =>
+      i.detectedBy === 'ai' &&
       i.timestamp.getTime() > oneMinuteAgo
     );
-    
+
     // Add new detections to alert queue
     veryRecentDetections.forEach(detection => {
       if (!alertQueue.find(alert => alert.id === detection.id)) {
@@ -55,8 +56,8 @@ const UserDashboard: React.FC = () => {
   const activeIncidents = incidents.filter(i => i.status === 'active');
   const criticalIncidents = incidents.filter(i => i.severity === 'critical');
   const aiDetections = incidents.filter(i => i.detectedBy === 'ai');
-  const recentAiDetections = incidents.filter(i => 
-    i.detectedBy === 'ai' && 
+  const recentAiDetections = incidents.filter(i =>
+    i.detectedBy === 'ai' &&
     Date.now() - i.timestamp.getTime() < 30 * 60 * 1000 // Last 30 minutes
   );
 
@@ -110,7 +111,7 @@ const UserDashboard: React.FC = () => {
               <span className="text-sm text-gray-600">YOLOv8 Active</span>
             </div>
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
             <div className="bg-gradient-to-r from-red-500 to-red-600 p-6 rounded-xl text-white">
               <div className="flex items-center justify-between">
@@ -176,8 +177,8 @@ const UserDashboard: React.FC = () => {
                 </span>
               </div>
             </div>
-            <TrafficMap 
-              incidents={incidents} 
+            <TrafficMap
+              incidents={incidents}
               center={{ lat: 17.3850, lng: 78.4867 }}
               height="400px"
             />
@@ -185,16 +186,13 @@ const UserDashboard: React.FC = () => {
 
           {/* Active Incidents */}
           <div className="bg-white rounded-2xl shadow-lg p-6">
+            {/* THIS IS THE CORRECTED SECTION */}
             <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-3">
               <AlertTriangle className="text-orange-600" />
               Active Incidents
               {recentAiDetections.length > 0 && (
-                <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
+                <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full ml-2">
                   <Bell className="w-3 h-3 inline mr-1" />
-                  {recentAiDetections.length} new
-                </span>
-              )}
-              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full ml-2">
                   {recentAiDetections.length} new
                 </span>
               )}
@@ -244,7 +242,7 @@ const UserDashboard: React.FC = () => {
 
         {/* Live AI Detection Alert Banner */}
         {newDetectionAlert && (
-          <div className="bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl p-6 text-white mb-8 animate-pulse">
+          <div className="bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl p-6 text-white mt-8 animate-pulse">
             <div className="flex items-center gap-3 mb-4">
               <div className="relative">
                 <AlertTriangle className="w-8 h-8" />
@@ -293,12 +291,12 @@ const UserDashboard: React.FC = () => {
         )}
 
         {/* YOLOv8 System Status */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mt-8">
           <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-3">
             <Zap className="text-yellow-500" />
             YOLOv8 Detection System Status
           </h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gradient-to-r from-green-500 to-green-600 p-4 rounded-lg text-white">
               <div className="flex items-center justify-between">
@@ -310,7 +308,7 @@ const UserDashboard: React.FC = () => {
               </div>
               <p className="text-xs text-green-100 mt-2">Monitoring Hyderabad</p>
             </div>
-            
+
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 rounded-lg text-white">
               <div className="flex items-center justify-between">
                 <div>
@@ -321,7 +319,7 @@ const UserDashboard: React.FC = () => {
               </div>
               <p className="text-xs text-blue-100 mt-2">Real-time analysis</p>
             </div>
-            
+
             <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-4 rounded-lg text-white">
               <div className="flex items-center justify-between">
                 <div>
