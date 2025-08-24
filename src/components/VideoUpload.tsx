@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, MapPin, Camera, CheckCircle } from 'lucide-react';
+import { Upload, MapPin, Camera, CheckCircle, AlertTriangle, Server } from 'lucide-react';
 import { yoloService } from '../services/yoloService';
 
 interface VideoUploadProps {
@@ -17,6 +17,8 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ onAnalysisComplete }) => {
   const [cctvName, setCctvName] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hyderabadLocations = [
@@ -30,17 +32,30 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ onAnalysisComplete }) => {
     { name: 'Kondapur', lat: 17.4616, lng: 78.3670, address: 'Kondapur, Hyderabad' }
   ];
 
+  // Check server status on component mount
+  React.useEffect(() => {
+    checkServerStatus();
+  }, []);
+
+  const checkServerStatus = async () => {
+    setServerStatus('checking');
+    const isHealthy = await yoloService.checkServerHealth();
+    setServerStatus(isHealthy ? 'online' : 'offline');
+  };
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith('video/')) {
       setSelectedFile(file);
       setAnalysisResult(null);
+      setError(null);
     }
   };
 
   const handleUploadAndAnalyze = async () => {
     if (!selectedFile || !cctvName) return;
 
+    setError(null);
     setIsUploading(true);
     setUploadProgress(0);
 
@@ -83,7 +98,8 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ onAnalysisComplete }) => {
       
     } catch (error) {
       console.error('Upload and analysis failed:', error);
-      alert(`Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setError(errorMessage);
     } finally {
       setIsUploading(false);
     }
@@ -95,6 +111,58 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ onAnalysisComplete }) => {
         <Upload className="text-blue-600" />
         Upload CCTV Footage
       </h3>
+
+      {/* Server Status */}
+      <div className={`p-4 rounded-lg border ${
+        serverStatus === 'online' ? 'bg-green-50 border-green-200' :
+        serverStatus === 'offline' ? 'bg-red-50 border-red-200' :
+        'bg-yellow-50 border-yellow-200'
+      }`}>
+        <div className="flex items-center gap-3">
+          <Server className={`w-5 h-5 ${
+            serverStatus === 'online' ? 'text-green-600' :
+            serverStatus === 'offline' ? 'text-red-600' :
+            'text-yellow-600'
+          }`} />
+          <div>
+            <p className={`font-medium ${
+              serverStatus === 'online' ? 'text-green-800' :
+              serverStatus === 'offline' ? 'text-red-800' :
+              'text-yellow-800'
+            }`}>
+              YOLOv8 Analysis Server: {
+                serverStatus === 'online' ? 'Online' :
+                serverStatus === 'offline' ? 'Offline' :
+                'Checking...'
+              }
+            </p>
+            {serverStatus === 'offline' && (
+              <p className="text-red-600 text-sm mt-1">
+                Server not running. Start with: <code className="bg-red-100 px-1 rounded">python flask_server.py</code>
+              </p>
+            )}
+          </div>
+          <button
+            onClick={checkServerStatus}
+            className="ml-auto px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <h4 className="text-red-800 font-medium mb-2">Analysis Failed</h4>
+              <pre className="text-red-700 text-sm whitespace-pre-wrap">{error}</pre>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Location Selection */}
       <div>
@@ -231,11 +299,13 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ onAnalysisComplete }) => {
       {/* Upload Button */}
       <button
         onClick={handleUploadAndAnalyze}
-        disabled={!selectedFile || !cctvName || isUploading}
+        disabled={!selectedFile || !cctvName || isUploading || serverStatus !== 'online'}
         className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
       >
         <Upload size={18} />
-        {isUploading ? 'Analyzing Video...' : 'Upload & Analyze'}
+        {isUploading ? 'Analyzing Video...' : 
+         serverStatus !== 'online' ? 'Server Offline' : 
+         'Upload & Analyze'}
       </button>
     </div>
   );

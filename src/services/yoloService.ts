@@ -2,12 +2,34 @@ import { YOLODetection, VideoAnalysis, Incident } from '../types';
 
 export class YOLOService {
   private apiEndpoint: string;
+  private healthCheckEndpoint: string;
 
   constructor() {
     this.apiEndpoint = import.meta.env.VITE_YOLO_API_ENDPOINT || 'http://localhost:5000/api/analyze';
+    this.healthCheckEndpoint = this.apiEndpoint.replace('/analyze', '/health');
+  }
+
+  async checkServerHealth(): Promise<boolean> {
+    try {
+      const response = await fetch(this.healthCheckEndpoint, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      return response.ok;
+    } catch (error) {
+      return false;
+    }
   }
 
   async analyzeVideo(videoFile: File, location: { lat: number; lng: number; address: string }): Promise<VideoAnalysis> {
+    // Check if server is running first
+    const isServerHealthy = await this.checkServerHealth();
+    if (!isServerHealthy) {
+      throw new Error('YOLOv8 analysis server is not running. Please start the Python Flask server first:\n\n1. Open terminal in the server directory\n2. Run: python setup.py (first time only)\n3. Run: python flask_server.py\n\nServer should be running on http://localhost:5000');
+    }
+
     const formData = new FormData();
     formData.append('video', videoFile);
     formData.append('location', JSON.stringify(location));
@@ -26,7 +48,12 @@ export class YOLOService {
       return this.processYOLOResults(result, location);
     } catch (error) {
       console.error('YOLO analysis error:', error);
-      throw new Error(`Real YOLO analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}. Make sure the Python Flask server is running on port 5000.`);
+      
+      if (error instanceof Error && error.message.includes('YOLOv8 analysis server is not running')) {
+        throw error;
+      }
+      
+      throw new Error(`YOLO analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}\n\nTroubleshooting:\n1. Make sure Python Flask server is running: python flask_server.py\n2. Check server logs for errors\n3. Verify server is accessible at http://localhost:5000`);
     }
   }
 
