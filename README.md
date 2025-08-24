@@ -53,7 +53,7 @@ cd server && npm install
 ### 3. Start the YOLOv8 Analysis Server
 ```bash
 cd server
-npm run dev
+npm start
 ```
 
 ### 4. Start the Frontend
