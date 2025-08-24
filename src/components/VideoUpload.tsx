@@ -83,7 +83,7 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ onAnalysisComplete }) => {
       
     } catch (error) {
       console.error('Upload and analysis failed:', error);
-      alert('Failed to analyze video. Please try again.');
+      alert(`Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsUploading(false);
     }

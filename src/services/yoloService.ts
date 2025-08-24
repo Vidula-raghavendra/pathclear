@@ -19,15 +19,14 @@ export class YOLOService {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to analyze video');
+        throw new Error(`Server responded with status: ${response.status}`);
       }
 
       const result = await response.json();
       return this.processYOLOResults(result, location);
     } catch (error) {
       console.error('YOLO analysis error:', error);
-      // Return mock data for demo purposes
-      return this.getMockAnalysis(videoFile, location);
+      throw new Error(`Real YOLO analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}. Make sure the Python Flask server is running on port 5000.`);
     }
   }
 
@@ -96,41 +95,6 @@ export class YOLOService {
       return confidence > 0.7 ? 'medium' : 'low';
     }
     return 'medium';
-  }
-
-  private getMockAnalysis(videoFile: File, location: { lat: number; lng: number; address: string }): VideoAnalysis {
-    // Enhanced mock analysis with more realistic detections
-    const possibleDetections = [
-      { class: 'car_accident', confidence: 0.85 + Math.random() * 0.1 },
-      { class: 'heavy_traffic', confidence: 0.70 + Math.random() * 0.15 },
-      { class: 'flood', confidence: 0.80 + Math.random() * 0.15 },
-      { class: 'blocked_road', confidence: 0.75 + Math.random() * 0.1 },
-      { class: 'emergency_vehicle', confidence: 0.90 + Math.random() * 0.05 }
-    ];
-
-    // Randomly select 1-3 detections
-    const numDetections = Math.floor(Math.random() * 3) + 1;
-    const mockDetections: YOLODetection[] = [];
-    
-    for (let i = 0; i < numDetections; i++) {
-      const detection = possibleDetections[Math.floor(Math.random() * possibleDetections.length)];
-      mockDetections.push({
-        ...detection,
-        bbox: [
-          Math.random() * 200 + 50,  // x
-          Math.random() * 150 + 50,  // y
-          Math.random() * 200 + 250, // x2
-          Math.random() * 150 + 200  // y2
-        ]
-      });
-    }
-
-    return this.processYOLOResults({
-      videoId: Date.now().toString(),
-      detections: mockDetections,
-      processedFrames: 100,
-      totalFrames: 100
-    }, location);
   }
 }
 
