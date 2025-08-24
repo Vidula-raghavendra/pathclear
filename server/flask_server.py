@@ -5,7 +5,16 @@ import tempfile
 import logging
 from pathlib import Path
 import json
-from yolo_model import analyze_video_file, get_model
+import time
+
+# Try to import YOLO model, fallback to mock if not available
+try:
+    from yolo_model import analyze_video_file, get_model
+    YOLO_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: YOLO model not available: {e}")
+    print("Running in mock mode for demonstration")
+    YOLO_AVAILABLE = False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -25,17 +34,60 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def mock_analyze_video(video_path, location):
+    """Mock video analysis when YOLO is not available"""
+    import random
+    
+    # Simulate processing time
+    time.sleep(2)
+    
+    # Generate mock incidents
+    incident_types = ['traffic_jam', 'car_accident', 'blocked_road']
+    incidents = []
+    
+    for i in range(random.randint(1, 3)):
+        incident_type = random.choice(incident_types)
+        confidence = random.uniform(0.6, 0.95)
+        
+        incidents.append({
+            'type': incident_type,
+            'confidence': confidence,
+            'description': f'Mock {incident_type.replace("_", " ")} detected with {confidence:.0%} confidence',
+            'timestamp': time.time() + i,
+            'bbox': [
+                random.randint(50, 200),
+                random.randint(50, 150), 
+                random.randint(250, 400),
+                random.randint(200, 300)
+            ]
+        })
+    
+    return {
+        'incidents': incidents,
+        'processed_frames': 100,
+        'total_frames': 100,
+        'fps': 30
+    }
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
     try:
-        model = get_model()
+        if YOLO_AVAILABLE:
+            model = get_model()
+            device = model.device
+            model_loaded = True
+        else:
+            device = 'cpu (mock)'
+            model_loaded = False
+            
         return jsonify({
             'status': 'healthy',
-            'model': 'YOLOv8 Traffic Analysis',
+            'model': 'YOLOv8 Traffic Analysis' if YOLO_AVAILABLE else 'Mock Analysis Server',
             'version': '2.0.0',
-            'device': model.device,
-            'model_loaded': True,
+            'device': device,
+            'model_loaded': model_loaded,
+            'yolo_available': YOLO_AVAILABLE,
             'supported_formats': list(ALLOWED_EXTENSIONS),
             'max_file_size_mb': MAX_FILE_SIZE // (1024 * 1024)
         })
@@ -43,6 +95,7 @@ def health_check():
         logger.error(f"Health check failed: {e}")
         return jsonify({
             'status': 'error',
+            'yolo_available': False,
             'error': str(e)
         }), 500
 
@@ -78,8 +131,11 @@ def analyze_video():
         
         logger.info(f"Analyzing video: {filename}")
         
-        # Analyze video with YOLO model
-        analysis_result = analyze_video_file(filepath)
+        # Analyze video with YOLO model or mock
+        if YOLO_AVAILABLE:
+            analysis_result = analyze_video_file(filepath)
+        else:
+            analysis_result = mock_analyze_video(filepath, location)
         
         # Convert YOLO results to expected format
         incidents = []
@@ -130,15 +186,23 @@ def analyze_video():
 def model_info():
     """Get information about the loaded model"""
     try:
-        model = get_model()
+        if YOLO_AVAILABLE:
+            model = get_model()
+            device = model.device
+            confidence_threshold = model.confidence_threshold
+        else:
+            device = 'cpu (mock)'
+            confidence_threshold = 0.5
+            
         return jsonify({
-            'model_type': 'YOLOv8',
-            'device': model.device,
-            'confidence_threshold': model.confidence_threshold,
-            'supported_classes': list(model.traffic_classes.keys()),
+            'model_type': 'YOLOv8' if YOLO_AVAILABLE else 'Mock',
+            'device': device,
+            'confidence_threshold': confidence_threshold,
+            'yolo_available': YOLO_AVAILABLE,
+            'supported_classes': list(range(20)) if YOLO_AVAILABLE else ['mock_classes'],
             'incident_types': ['traffic_jam', 'car_accident', 'blocked_road', 'emergency_vehicle'],
-            'model_size': 'nano (fastest)',
-            'inference_speed': 'Real-time capable'
+            'model_size': 'nano (fastest)' if YOLO_AVAILABLE else 'mock',
+            'inference_speed': 'Real-time capable' if YOLO_AVAILABLE else 'Mock speed'
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -160,18 +224,22 @@ def get_severity(confidence, incident_type):
         return 'medium'
 
 if __name__ == '__main__':
-    import time
     from werkzeug.utils import send_from_directory
     
     logger.info("Starting YOLOv8 Traffic Analysis Server...")
-    logger.info("Loading YOLO model...")
     
-    # Pre-load model
-    try:
-        model = get_model()
-        logger.info(f"Model loaded successfully on {model.device}")
-    except Exception as e:
-        logger.error(f"Failed to load model: {e}")
-        exit(1)
+    if YOLO_AVAILABLE:
+        logger.info("Loading YOLO model...")
+        try:
+            model = get_model()
+            logger.info(f"YOLO model loaded successfully on {model.device}")
+        except Exception as e:
+            logger.error(f"Failed to load YOLO model: {e}")
+            logger.info("Continuing in mock mode...")
+            YOLO_AVAILABLE = False
+    else:
+        logger.info("Running in mock mode - YOLO dependencies not available")
     
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    logger.info("Server starting on http://localhost:5000")
+    logger.info("Health check available at: http://localhost:5000/api/health")
+    

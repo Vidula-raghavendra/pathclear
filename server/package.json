@@ -5,12 +5,13 @@
   "main": "flask_server.py",
   "scripts": {
     "setup": "python setup.py",
-    "start": "python flask_server.py",
-    "dev": "python flask_server.py",
+    "start": "python start_server.py",
+    "dev": "python start_server.py",
+    "server": "python flask_server.py",
     "train": "python train_custom_model.py",
     "test": "python -m pytest tests/",
     "install": "pip install -r requirements.txt",
-    "prestart": "python -c \"import sys; print('Python version:', sys.version); import flask; print('Flask installed')\" || echo 'Please install Python dependencies first'"
+    "prestart": "python -c \"import sys; print('Python version:', sys.version)\" || echo 'Python not available'"
   },
   "engines": {
     "python": ">=3.8"
