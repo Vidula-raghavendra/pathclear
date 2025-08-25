@@ -5,9 +5,10 @@
   "main": "flask_server.py",
   "scripts": {
     "setup": "python setup.py",
-    "start": "python start.py",
+    "start": "python quick_server.py",
     "dev": "python start.py",
     "server": "python flask_server.py",
+    "quick": "python quick_server.py",
     "simple": "python simple_server.py",
     "train": "python train_custom_model.py",
     "test": "python -m pytest tests/",
