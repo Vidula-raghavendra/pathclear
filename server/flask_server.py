@@ -9,19 +9,16 @@ import time
 
 # Try to import YOLO model, fallback to mock if not available
 try:
-    from .yolo_model import analyze_video_file, get_model
+    from yolo_model import analyze_video_file, get_model
     YOLO_AVAILABLE = True
+    logger.info("YOLO model module imported successfully")
 except ImportError as e:
-    try:
-        from yolo_model import analyze_video_file, get_model
-        YOLO_AVAILABLE = True
-    except ImportError as e2:
-        print(f"Warning: YOLO model not available: {e2}")
-        print("Running in mock mode for demonstration")
-        YOLO_AVAILABLE = False
+    logger.warning(f"YOLO model not available: {e}")
+    logger.info("Running in mock mode for demonstration")
+    YOLO_AVAILABLE = False
 except Exception as e:
-    print(f"Warning: YOLO initialization failed: {e}")
-    print("Running in mock mode for demonstration")
+    logger.error(f"YOLO initialization failed: {e}")
+    logger.info("Running in mock mode for demonstration")
     YOLO_AVAILABLE = False
 
 # Configure logging
@@ -141,7 +138,12 @@ def analyze_video():
         
         # Analyze video with YOLO model or mock
         if YOLO_AVAILABLE:
-            analysis_result = analyze_video_file(filepath)
+            try:
+                analysis_result = analyze_video_file(filepath)
+                logger.info(f"YOLO analysis successful: {len(analysis_result['incidents'])} incidents")
+            except Exception as e:
+                logger.error(f"YOLO analysis failed: {e}")
+                analysis_result = mock_analyze_video(filepath, location)
         else:
             analysis_result = mock_analyze_video(filepath, location)
         
