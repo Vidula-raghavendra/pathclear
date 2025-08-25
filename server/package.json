@@ -4,16 +4,10 @@
   "description": "Real YOLOv8 deep learning server for traffic incident detection",
   "main": "flask_server.py",
   "scripts": {
-    "setup": "python setup.py",
-    "start": "python quick_server.py",
-    "dev": "python start.py",
-    "server": "python flask_server.py",
-    "quick": "python quick_server.py",
-    "simple": "python simple_server.py",
-    "train": "python train_custom_model.py",
+    "start": "node server.js",
+    "dev": "node server.js",
     "test": "python -m pytest tests/",
-    "install": "pip install -r requirements.txt",
-    "prestart": "python -c \"import sys; print('Python version:', sys.version)\" || echo 'Python not available'"
+    "install": "npm install"
   },
   "engines": {
     "python": ">=3.8"
