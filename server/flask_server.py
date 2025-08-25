@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
 import tempfile
@@ -6,6 +6,10 @@ import logging
 from pathlib import Path
 import json
 import time
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Try to import YOLO model, fallback to mock if not available
 try:
@@ -20,10 +24,6 @@ except Exception as e:
     logger.error(f"YOLO initialization failed: {e}")
     logger.info("Running in mock mode for demonstration")
     YOLO_AVAILABLE = False
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
@@ -234,8 +234,6 @@ def get_severity(confidence, incident_type):
         return 'medium'
 
 if __name__ == '__main__':
-    from werkzeug.utils import send_from_directory
-    
     logger.info("Starting YOLOv8 Traffic Analysis Server...")
     
     if YOLO_AVAILABLE:
@@ -253,3 +251,4 @@ if __name__ == '__main__':
     logger.info("Server starting on http://localhost:5000")
     logger.info("Health check available at: http://localhost:5000/api/health")
     
+    app.run(host='0.0.0.0', port=5000, debug=False)
