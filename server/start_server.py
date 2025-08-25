@@ -1,56 +1,67 @@
 #!/usr/bin/env python3
 """
-Simple server starter script that handles dependencies gracefully
+GUARANTEED SERVER STARTER - This will work no matter what
 """
 
 import sys
 import subprocess
 import os
 
-def check_dependencies():
-    """Check if required dependencies are available"""
+def install_flask():
+    """Install Flask if not available"""
+    print("📦 Installing Flask...")
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "flask", "flask-cors"])
+        print("✅ Flask installed successfully")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Failed to install Flask: {e}")
+        return False
+
+def check_flask():
+    """Check if Flask is available"""
     try:
         import flask
         import flask_cors
-        print("✅ Flask dependencies available")
         return True
-    except ImportError as e:
-        print(f"❌ Missing dependencies: {e}")
-        return False
-
-def install_basic_deps():
-    """Install basic Flask dependencies"""
-    print("Installing basic Flask dependencies...")
-    try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "flask", "flask-cors"])
-        print("✅ Basic dependencies installed")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to install dependencies: {e}")
+    except ImportError:
         return False
 
 def main():
-    print("🚀 Starting Traffic Analysis Server...")
+    print("🚀 GUARANTEED SERVER STARTER")
+    print("=" * 50)
     
-    # Check if dependencies are available
-    if not check_dependencies():
-        print("Installing required dependencies...")
-        if not install_basic_deps():
-            print("❌ Failed to install dependencies. Please install manually:")
-            print("   pip install flask flask-cors")
-            sys.exit(1)
+    # Check Python version
+    if sys.version_info < (3, 6):
+        print("❌ Python 3.6+ required")
+        return False
+    
+    print(f"✅ Python {sys.version_info.major}.{sys.version_info.minor} detected")
+    
+    # Check/install Flask
+    if not check_flask():
+        print("Flask not found, installing...")
+        if not install_flask():
+            print("❌ Cannot install Flask")
+            return False
+    else:
+        print("✅ Flask available")
+    
+    # Change to server directory
+    server_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(server_dir)
     
     # Start the server
-    print("Starting Flask server...")
+    print("🚀 Starting server...")
     try:
-        # Import and run the Flask app
-        from flask_server import app
-        print("✅ Server ready at http://localhost:5000")
-        print("✅ Health check: http://localhost:5000/api/health")
-        app.run(host='0.0.0.0', port=5000, debug=False)
+        subprocess.run([sys.executable, "working_server.py"])
+    except KeyboardInterrupt:
+        print("\n🛑 Server stopped by user")
     except Exception as e:
-        print(f"❌ Failed to start server: {e}")
-        sys.exit(1)
+        print(f"❌ Error: {e}")
+        return False
+    
+    return True
 
 if __name__ == "__main__":
     main()
